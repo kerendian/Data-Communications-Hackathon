@@ -1,11 +1,15 @@
+from scapy.all import *
 import socket
 import time
 import struct
-from scapy.all import get_if_addr
+import os
+# from scapy.all import get_if_addr
 import threading
 import random
 
 class Server:
+
+    print( os.sys.path)
     def __init__(self, port, dev):
         self.port = port
         if(dev):
