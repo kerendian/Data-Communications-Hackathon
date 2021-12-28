@@ -1,4 +1,4 @@
-from scapy.all import *
+# from scapy.all import *
 import socket
 import time
 import struct
@@ -15,6 +15,7 @@ class Server:
         else:
             self.ip = get_if_addr('eth2') 
             self.broadcast = "172.99.255.255" 
+  
         # dict for the players in the game
         self.players = {}
         self.gameLock = threading.Lock()
@@ -27,7 +28,7 @@ class Server:
         # For linux hosts all sockets that want to share the same address and port combination must belong to processes that share the same effective user ID!
         # So, on linux(kernel>=3.9) you have to run multiple servers and clients under one user to share the same (host, port).
         # Thanks to @stevenreddie
-        self.udpServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        # self.udpServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
         # Enable broadcasting mode
         self.udpServer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -93,14 +94,14 @@ class Server:
             self.tcpServer.settimeout(10)
             self.tcpServer.sendall(message.encode())
             # here we recieve the ans from one of the teams
-            data, addr = self.tcpServer.recvfrom(1024)
+            sol, addr = self.tcpServer.recvfrom(1024)
             #     if(data):
-            if(data):
+            if(sol):
             #         mutex.aquier()
                 self.gameLock.acquire()
                     #     win or lose the game to meesage. we will check here if the answer is correct.
                 team1, team2 = self.findSource(addr)
-                if data.decode() == ans: #winner
+                if sol.decode() == ans: #winner
                     winner = team1 #name of the team
                     loser = team2       
                 else: #wrong answer
@@ -125,7 +126,7 @@ class Server:
             #we can close here the sockets if needed.
 
             # close sockets 
-            #tcpServer.close() TODO: check if we need to close it
+            self.tcpServer.close() # TODO: check if we need to close it
             
     def randomQuestion(self):
         numbers = [1,2,3,4]

@@ -6,10 +6,8 @@ import sys
 import threading
 import time
 import selectors
-import fcntl
 import termios
 import tty
-import traceback
 import struct
 
 class Client:
@@ -80,3 +78,4 @@ class Client:
                 if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
                     break
         currSocket.setblocking(True)  
+Client(True)
