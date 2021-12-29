@@ -1,4 +1,4 @@
-from scapy.all import *
+# from scapy.all import *
 import socket
 import time
 import struct
@@ -36,8 +36,6 @@ class Server:
         self.tcpServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcpServer.bind((self.ip, self.port))
 
-
-
         # Set a timeout so the socket does not block
         # indefinitely when trying to receive data.
         #server.settimeout(0.2)
@@ -49,7 +47,6 @@ class Server:
         self.tcpThread.start()
         self.udpThread.join()
         self.tcpThread.join()
-        
     def sendBroadcast(self,IP, port):
         message = struct.pack('IbH', 0xabcddcba, 0x2 , port)
         while len(self.players) < 2:
@@ -61,17 +58,18 @@ class Server:
 
     def startTCP(self):
         while not self.gameMode:
-            try:               
+            try:
+                
                 self.tcpServer.listen()
                 client, addr = self.tcpServer.accept()
-                data = client.recv(1027) #reciving name of client's team
+                data = self.tcpServer.recv(1027) #reciving name of client's team
                 self.playersDictLock.acquire()
-                self.players[addr] = [data.decode(),1,client] 
+                self.players[addr] = [data.decode(),1] 
                 self.playersDictLock.release()
                 client2, addr2 = self.tcpServer.accept()
-                data2 = client2.recv(1027) #reciving name of client's team
+                data2 = self.tcpServer.recv(1027) #reciving name of client's team
                 self.playersDictLock.acquire()
-                self.players[addr2] = [data2.decode(),2,client2] 
+                self.players[addr2] = [data2.decode(),2] 
                 self.playersDictLock.release()
                 problem,ans = self.randomQuestion()
                 clientThread1 = threading.Thread(target=self.startGame,args=(problem, ans))
@@ -93,7 +91,6 @@ class Server:
         .format(names[0],names[1],problem)
         # do soctcpServer.settimeout(10) before -> then 
         try:
-            # TODO: 
             self.tcpServer.settimeout(10)
             self.tcpServer.sendall(message.encode())
             # here we recieve the ans from one of the teams
