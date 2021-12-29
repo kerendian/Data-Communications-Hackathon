@@ -39,17 +39,13 @@ class Client:
                 try:
                     # tcpClient.connect((addr[0], message[2]))
                     tcpClient.connect((socket.gethostname(), message[2]))
-                    
                     tcpClient.sendall((self.teamName + "\n").encode())
-                    
                     problem, addr1 = tcpClient.recvfrom(1024)
                     print(problem.decode())
-                    
                     self.tcpConected = tcpClient
-                    print("here")
                     self.currSelector = selectors.DefaultSelector()
                     self.currSelector.register(sys.stdin, selectors.EVENT_READ, self.got_keyboard_data)
-                    self.currSelector.register(tcpConected, selectors.EVENT_READ, self.printServerSummary)
+                    self.currSelector.register(self.tcpConected, selectors.EVENT_READ, self.printServerSummary)
                     old_settings = termios.tcgetattr(sys.stdin)
                     tty.setcbreak(sys.stdin.fileno())
                     while self.tcpConected is not None:
@@ -58,7 +54,7 @@ class Client:
                             callback = k.data
                             callback(k.fileobj)
                     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-                    tcpClient.close()
+                    #tcpClient.close()
                 except Exception as e:
                     print(e)
                     udpClient.close()
@@ -69,9 +65,11 @@ class Client:
                 print("Server disconnected, listening for offer requests...")
     
     def got_keyboard_data(self, stdin):
+        print("sent to server")
+
         if self.tcpConected is not None:
-            sol = stdin.read()
-            self.tcpConected.send(sol.encode())
+            sol = sys.stdin.readline(1)
+            self.tcpConected.sendall(sol.encode())
 
 
     def printServerSummary(self, currSocket):

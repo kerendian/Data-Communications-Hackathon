@@ -85,7 +85,12 @@ class Server:
                 client.sendall(message.encode())
                 client2.sendall(message.encode())
                 clientThread1.start()   
-                clientThread2.start()   
+                clientThread2.start()  
+                clientThread1.join()   
+                clientThread2.join()  
+                self.udpThread = threading.Thread(target=self.sendBroadcast, args=(self.ip,self.port))
+                self.udpThread.start()
+                self.udpThread.join() 
             except: 
                 pass
         time.sleep(1)  #TODO:check how much time to sleep without busy wait.
@@ -105,9 +110,11 @@ class Server:
             #print(message)
             #self.client.sendall(message.encode())
             # here we recieve the ans from one of the teams
+            #sol, addr = client.recvfrom(1024)
             sol, addr = client.recvfrom(1024)
             #     if(data):
             if(sol):
+                print("in sol")
             #         mutex.aquier()
                 self.gameLock.acquire()
                     #     win or lose the game to meesage. we will check here if the answer is correct.
@@ -129,15 +136,19 @@ class Server:
             # handle exeption after 10 seconds. exept(TimeoutExeption)
         except socket.timeout: #TODO:need to make sure the timeoutexception from socekt.settimeout is this one
             # teko -> send summery to clients
+            #self.gameLock.release()
             summary = "Game over!\nThe correct answer was {}!\n\nThe game ended in a tie".format(ans)
             client.sendall(summary.encode())
         finally:
+            print("in finally")
             self.players={}
             self.gameMode = False
             #we can close here the sockets if needed.
 
             # close sockets 
             client.close() # TODO: check if we need to close it
+            
+
             
     def randomQuestion(self):
         numbers = [1,2,3,4]
