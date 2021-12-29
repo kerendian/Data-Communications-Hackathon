@@ -4,7 +4,14 @@ import time
 import struct
 import threading
 import random
-
+CRED    = '\33[31m'
+CGREEN  = '\33[32m'
+CYELLOW = '\33[33m'
+CBLUE   = '\33[34m'
+CVIOLET = '\33[35m'
+CBOLD     = '\33[1m'
+CITALIC   = '\33[3m'
+CEND      = '\33[0m'
 class Server:
     def __init__(self, port, dev):
         self.port = port
@@ -36,7 +43,7 @@ class Server:
         self.tcpThread.join()
     
     def sendBroadcast(self,IP, port):
-        print("sending broadcast messages")
+        print(f'{CBOLD}{CITALIC}{CBLUE}sending broadcast messages{CEND}')
         #sending broadcast message every second until the game starts
         message = struct.pack('IbH', 0xabcddcba, 0x2 , port)
         while len(self.players) < 2:
@@ -49,13 +56,13 @@ class Server:
             try:               
                 self.tcpServer.listen()
                 client, addr = self.tcpServer.accept()
-                print("Player 1 connected, waiting for player 2")
+                print(f'{CBOLD}{CVIOLET}Player 1 connected, waiting for player 2{CEND}')
                 data = client.recv(1027) #reciving name of client's team
                 self.playersDictLock.acquire() #adding the first player to the dictionary
                 self.players[addr] = [data.decode(),1,client] 
                 self.playersDictLock.release()
                 client2, addr2 = self.tcpServer.accept()
-                print("Player 2 connected, the game will start in a few seconds")
+                print(f'{CBOLD}{CVIOLET}Player 2 connected, the game will start in a few seconds{CEND}')
                 data2 = client2.recv(1027) #reciving name of client's team
                 self.playersDictLock.acquire()  #adding the second player to the dictionary
                 self.players[addr2] = [data2.decode(),2,client2] 
@@ -67,7 +74,7 @@ class Server:
                 time.sleep(10) #after both clients connected- neet to wait 10 seconds
                 message = "Welcome to Quick Maths.\nPlayer 1: {}\nPlayer 2: {}\n==\nPlease answer the following question as fast as you can\n How much is {}" \
                 .format(data.decode(),data2.decode(),problem)
-                print(message)
+                print(f'{CBOLD}{CYELLOW}message{CEND}')
                 self.sendAllClients(message.encode())
                 clientThread1.start()   
                 clientThread2.start()  
@@ -130,13 +137,13 @@ class Server:
             summary = "Game over!\nThe correct answer was {}!\nThe game finished in a tie.".format(ans)
         else:
             summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
-        print(summary)
+        print(f'{CBOLD}{CGREEN}summary{CEND}')
         self.sendAllClients(summary.encode())
         self.playersDictLock.acquire()
         self.players={}
         self.playersDictLock.release()
         self.gameMode = False
-        print("Game over, sending out offer requests...")
+        print(f'{CBOLD}{CITALIC}{CRED}Game over, sending out offer requests...{CEND}')
         self.udpServer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         # Enable broadcasting mode
         self.udpServer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
