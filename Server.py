@@ -82,15 +82,16 @@ class Server:
                 message = "Welcome to Quick Maths.\nPlayer 1: {}\nPlayer 2: {}\n==\nPlease answer the following question as fast as you can\n How much is {}" \
                 .format(data.decode(),data2.decode(),problem)
                 print(message)
-                client.sendall(message.encode())
-                client2.sendall(message.encode())
+                self.sendAllClients(message.encode())
+                #client.sendall(message.encode())
+                #client2.sendall(message.encode())
                 clientThread1.start()   
                 clientThread2.start()  
                 clientThread1.join()   
                 clientThread2.join()  
-                self.udpThread = threading.Thread(target=self.sendBroadcast, args=(self.ip,self.port))
-                self.udpThread.start()
-                self.udpThread.join() 
+                # self.udpThread = threading.Thread(target=self.sendBroadcast, args=(self.ip,self.port))
+                # self.udpThread.start()
+                # self.udpThread.join() 
             except: 
                 pass
         time.sleep(1)  #TODO:check how much time to sleep without busy wait.
@@ -114,21 +115,23 @@ class Server:
             sol, addr = client.recvfrom(1024)
             #     if(data):
             if(sol):
-                print("in sol")
+                #print("in sol")
             #         mutex.aquier()
                 self.gameLock.acquire()
                     #     win or lose the game to meesage. we will check here if the answer is correct.
                 team1, team2 = self.findSource(addr)
                 if sol.decode() == ans: #winner
-                    winner = team1 #name of the team
-                    loser = team2       
+                    #winner = team1 #name of the team
+                    #loser = team2       
+                    self.gameOver(team1,ans)
                 else: #wrong answer
-                    winner = team2 #name of the team
-                    loser = team1
+                    #winner = team2 #name of the team
+                    #loser = team1
+                    self.gameOver(team2,ans)
                 
                 #  #      send game summery to the clients -> the clients socket is in the players Dict -> send from the dict
-                summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
-                client.sendall(summary.encode())
+                #summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
+                #client.sendall(summary.encode())
                 #     mutex.realease()
                 self.gameLock.release()
                     # close socket 
@@ -137,12 +140,13 @@ class Server:
         except socket.timeout: #TODO:need to make sure the timeoutexception from socekt.settimeout is this one
             # teko -> send summery to clients
             #self.gameLock.release()
-            summary = "Game over!\nThe correct answer was {}!\n\nThe game ended in a tie".format(ans)
-            client.sendall(summary.encode())
+            #summary = "Game over!\nThe correct answer was {}!\n\nThe game ended in a tie".format(ans)
+            #client.sendall(summary.encode())
+            self.gameOver(None,ans)
         finally:
-            print("in finally")
-            self.players={}
-            self.gameMode = False
+            # print("in finally")
+            # self.players={}
+            # self.gameMode = False
             #we can close here the sockets if needed.
 
             # close sockets 
@@ -165,4 +169,23 @@ class Server:
                 team2 = self.players[addr][0]
         return team1,team2
 
+#########################################
+     def sendAllClients(self, msg):
+        for player in self.players:
+            try:
+                self.players[player][2].sendall(msg)
+            except socket.error as e:
+                pass
+    
+    def gameOver(self, winner, ans):
+        if winner is None:
+            summary = "Game over!\nThe correct answer was {}!\nThe game finished in a tie.".format(ans)
+        else:
+            summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
+        self.sendAllClients(summary.encode())
+        self.players={}
+        self.gameMode = False
+        print("Game over, sending out offer requests...")
+        self.sendBroadcast(self.ip,self.port)
+        return
 Server(2032, True)

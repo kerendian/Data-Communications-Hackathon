@@ -15,7 +15,6 @@ class Client:
         self.tcpConected = None
         self.teamName = "Amen"   
         UDP_PORT = 13117
-        # Mode = 0 #0 for listening, 1 for playing
         print("Client started, listening for offer requests...")
         udpClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) # UDP
         udpClient.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -44,7 +43,7 @@ class Client:
                     print(problem.decode())
                     self.tcpConected = tcpClient
                     self.currSelector = selectors.DefaultSelector()
-                    self.currSelector.register(sys.stdin, selectors.EVENT_READ, self.got_keyboard_data)
+                    self.currSelector.register(sys.stdin, selectors.EVENT_READ, self.pressedKeyboard)
                     self.currSelector.register(self.tcpConected, selectors.EVENT_READ, self.printServerSummary)
                     old_settings = termios.tcgetattr(sys.stdin)
                     tty.setcbreak(sys.stdin.fileno())
@@ -64,9 +63,7 @@ class Client:
                 self.clearSocket(udpClient)
                 print("Server disconnected, listening for offer requests...")
     
-    def got_keyboard_data(self, stdin):
-        print("sent to server")
-
+    def pressedKeyboard(self, stdin):
         if self.tcpConected is not None:
             sol = sys.stdin.readline(1)
             self.tcpConected.sendall(sol.encode())
