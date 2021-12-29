@@ -32,7 +32,6 @@ class Server:
 
         # Enable broadcasting mode
         self.udpServer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
         self.tcpServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcpServer.bind((self.ip, self.port))
 
@@ -57,7 +56,7 @@ class Server:
             self.udpServer.sendto(message, ('<broadcast>', 13117))
             time.sleep(1)
             #maybe we need      
-        self.sendBroadcast(IP, port)
+        # self.sendBroadcast(IP, port)
 
     def startTCP(self):
         while not self.gameMode:
@@ -74,46 +73,62 @@ class Server:
                 self.players[addr2] = [data2.decode(),2,client2] 
                 self.playersDictLock.release()
                 problem,ans = self.randomQuestion()
-                clientThread1 = threading.Thread(target=self.startGame,args=(problem, ans))
-                clientThread2 = threading.Thread(target=self.startGame,args=(problem, ans))
+                clientThread1 = threading.Thread(target=self.startGame,args=(problem, ans,client))
+                clientThread2 = threading.Thread(target=self.startGame,args=(problem, ans, client2))
                 self.gameMode = True
+                time.sleep(10) #after both clients connected- neet to wait 10 seconds
+                message = "Welcome to Quick Maths.\nPlayer 1: {}\nPlayer 2: {}\n==\nPlease answer the following question as fast as you can\n How much is {}" \
+                .format(data.decode(),data2.decode(),problem)
+                print(message)
+                self.sendAllClients(message.encode())
+                #client.sendall(message.encode())
+                #client2.sendall(message.encode())
                 clientThread1.start()   
-                clientThread2.start()   
+                clientThread2.start()  
+                clientThread1.join()   
+                clientThread2.join()  
+                # self.udpThread = threading.Thread(target=self.sendBroadcast, args=(self.ip,self.port))
+                # self.udpThread.start()
+                # self.udpThread.join() 
             except: 
                 pass
         time.sleep(1)  #TODO:check how much time to sleep without busy wait.
         self.startTCP()
 
-    def startGame(self,problem,ans):
-        time.sleep(10) #after both clients connected- neet to wait 10 seconds
-        names = []
-        for team in self.players:
-            names.append(self.players[team][0])
-        message = "Welcome to Quick Maths.\nPlayer 1: {}\nPlayer 2: {}\n==\nPlease answer the following question as fast as you can\n How much is {}" \
-        .format(names[0],names[1],problem)
+    def startGame(self,problem,ans, client):
+        #time.sleep(10) #after both clients connected- neet to wait 10 seconds
+        #names = []
+        #for team in self.players:
+            #names.append(self.players[team][0])
+        #message = "Welcome to Quick Maths.\nPlayer 1: {}\nPlayer 2: {}\n==\nPlease answer the following question as fast as you can\n How much is {}" \
+        #.format(names[0],names[1],problem)
         # do soctcpServer.settimeout(10) before -> then 
         try:
             # TODO: 
             self.tcpServer.settimeout(10)
             self.tcpServer.sendall(message.encode())
             # here we recieve the ans from one of the teams
-            sol, addr = self.tcpServer.recvfrom(1024)
+            #sol, addr = client.recvfrom(1024)
+            sol, addr = client.recvfrom(1024)
             #     if(data):
             if(sol):
+                #print("in sol")
             #         mutex.aquier()
                 self.gameLock.acquire()
                     #     win or lose the game to meesage. we will check here if the answer is correct.
                 team1, team2 = self.findSource(addr)
                 if sol.decode() == ans: #winner
-                    winner = team1 #name of the team
-                    loser = team2       
+                    #winner = team1 #name of the team
+                    #loser = team2       
+                    self.gameOver(team1,ans)
                 else: #wrong answer
-                    winner = team2 #name of the team
-                    loser = team1
+                    #winner = team2 #name of the team
+                    #loser = team1
+                    self.gameOver(team2,ans)
                 
                 #  #      send game summery to the clients -> the clients socket is in the players Dict -> send from the dict
-                summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
-                self.tcpServer.sendall(summary.encode())
+                #summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
+                #client.sendall(summary.encode())
                 #     mutex.realease()
                 self.gameLock.release()
                     # close socket 
@@ -121,15 +136,20 @@ class Server:
             # handle exeption after 10 seconds. exept(TimeoutExeption)
         except socket.timeout: #TODO:need to make sure the timeoutexception from socekt.settimeout is this one
             # teko -> send summery to clients
-            summary = "Game over!\nThe correct answer was {}!\n\nThe game ended in a tie".format(ans)
-            self.tcpServer.sendall(summary.encode())
+            #self.gameLock.release()
+            #summary = "Game over!\nThe correct answer was {}!\n\nThe game ended in a tie".format(ans)
+            #client.sendall(summary.encode())
+            self.gameOver(None,ans)
         finally:
-            self.players={}
-            self.gameMode = False
+            # print("in finally")
+            # self.players={}
+            # self.gameMode = False
             #we can close here the sockets if needed.
 
             # close sockets 
-            self.tcpServer.close() # TODO: check if we need to close it
+            client.close() # TODO: check if we need to close it
+            
+
             
     def randomQuestion(self):
         numbers = [1,2,3,4]

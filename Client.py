@@ -15,7 +15,6 @@ class Client:
         self.tcpConected = None
         self.teamName = "Amen"   
         UDP_PORT = 13117
-        # Mode = 0 #0 for listening, 1 for playing
         print("Client started, listening for offer requests...")
         udpClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) # UDP
         udpClient.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -28,14 +27,14 @@ class Client:
                     continue
             try:
                 message = struct.unpack('IbH' , data)
-                if(message[0]!= 0xabcddcba):
+                #if(message[0]!= 0xabcddcba): #TODO:remove comment
+                if(message[0] != 0xabcddcba or int(message[2]) != 2032):
                    continue
             except:
                 continue
            
             else:
                 print(("Received offer from {}, attempting to connect...".format(str(addr[0]))))
-                udpClient.close()
                 try:
                     # tcpClient.connect((addr[0], message[2]))
                     tcpClient.connect((socket.gethostname(), message[2]))
@@ -44,8 +43,8 @@ class Client:
                     print(problem.decode())
                     self.tcpConected = tcpClient
                     self.currSelector = selectors.DefaultSelector()
-                    self.currSelector.register(sys.stdin, selectors.EVENT_READ, self.got_keyboard_data)
-                    self.currSelector.register(tcpConected, selectors.EVENT_READ, self.printServerSummary)
+                    self.currSelector.register(sys.stdin, selectors.EVENT_READ, self.pressedKeyboard)
+                    self.currSelector.register(self.tcpConected, selectors.EVENT_READ, self.printServerSummary)
                     old_settings = termios.tcgetattr(sys.stdin)
                     tty.setcbreak(sys.stdin.fileno())
                     while self.tcpConected is not None:
@@ -54,18 +53,20 @@ class Client:
                             callback = k.data
                             callback(k.fileobj)
                     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-                    tcpClient.close()
-                except Exception:
+                    #tcpClient.close()
+                except Exception as e:
+                    print(e)
+                    udpClient.close()
                     tcpClient.close()
                   
-                tcpConected = None
+                self.tcpConected = None
                 self.clearSocket(udpClient)
                 print("Server disconnected, listening for offer requests...")
     
-    def got_keyboard_data(self, stdin):
+    def pressedKeyboard(self, stdin):
         if self.tcpConected is not None:
-            sol = stdin.read()
-            self.tcpConected.send(sol.encode())
+            sol = sys.stdin.readline(1)
+            self.tcpConected.sendall(sol.encode())
 
 
     def printServerSummary(self, currSocket):
