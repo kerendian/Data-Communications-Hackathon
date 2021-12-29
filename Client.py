@@ -28,8 +28,8 @@ class Client:
             try:
                 message = struct.unpack('IbH' , data)
                 # print("connected server port" + str(message[2]))
-                # if(message[0]!= 0xabcddcba): #TODO:remove comment
-                if(message[0] != 0xabcddcba or int(message[2]) != 2085):
+                if(message[0]!= 0xabcddcba): #TODO:remove comment
+                # if(message[0] != 0xabcddcba or int(message[2]) != 2085):
                    continue
             except:
                 continue
