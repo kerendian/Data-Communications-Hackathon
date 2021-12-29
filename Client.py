@@ -11,7 +11,7 @@ import tty
 import struct
 
 class Client:
-    def __init__(self, dev):
+    def __init__(self):
         self.tcpConected = None
         self.teamName = "Amen"   
         UDP_PORT = 13117
@@ -27,8 +27,8 @@ class Client:
                     continue
             try:
                 message = struct.unpack('IbH' , data)
-                #if(message[0]!= 0xabcddcba): #TODO:remove comment
-                if(message[0] != 0xabcddcba or int(message[2]) != 2032):
+                if(message[0]!= 0xabcddcba): #TODO:remove comment
+                # if(message[0] != 0xabcddcba or int(message[2]) != 2032):
                    continue
             except:
                 continue
@@ -38,6 +38,7 @@ class Client:
                 try:
                     # tcpClient.connect((addr[0], message[2]))
                     tcpClient.connect((socket.gethostname(), message[2]))
+                    print("connected to server")
                     tcpClient.sendall((self.teamName + "\n").encode())
                     problem, addr1 = tcpClient.recvfrom(1024)
                     print(problem.decode())
@@ -56,7 +57,7 @@ class Client:
                     tcpClient.close()
                 except Exception as e:
                     print(e)
-                    udpClient.close()
+                    # udpClient.close()
                     tcpClient.close()
                 else:  
                     self.tcpConected = None
@@ -78,14 +79,4 @@ class Client:
         self.currSelector.unregister(currSocket)
 
 
-    def clearSocket(self,currSocket):
-        currSocket.setblocking(False) # set the socket to non blocking
-        while True:
-            try:
-                currSocket.recv(1024)
-            except socket.error as e: # no data availible in the socket
-                err = e.args[0]
-                if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-                    break
-        currSocket.setblocking(True)  
-Client(True)
+Client()

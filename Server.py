@@ -97,7 +97,7 @@ class Server:
         except socket.timeout:
             # tie -> send summery to clients
             self.gameOver(None,ans)
-        except exception as e:
+        except Exception as e:
             print(e)
         finally:
             client.close() #TODO: check if we need to close it
@@ -145,4 +145,4 @@ class Server:
         self.udpThread.join()
         #self.sendBroadcast(self.ip,self.port)
         return
-Server(2032, True)
+Server(2032, False)
