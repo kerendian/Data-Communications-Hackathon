@@ -97,6 +97,8 @@ class Server:
         except socket.timeout:
             # tie -> send summery to clients
             self.gameOver(None,ans)
+        except exception as e:
+            print(e)
         finally:
             client.close() #TODO: check if we need to close it
               
@@ -109,8 +111,6 @@ class Server:
 
     def findSource(self,address): #find out which team returned the answer first
         for addr in self.players:
-            print("addr " + str(addr))
-            print("address " + str(address))
             if addr == address:
                 team1 = self.players[addr][0]
             else:
@@ -130,6 +130,7 @@ class Server:
             summary = "Game over!\nThe correct answer was {}!\nThe game finished in a tie.".format(ans)
         else:
             summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
+        print(summary)
         self.sendAllClients(summary.encode())
         self.playersDictLock.acquire()
         self.players={}
