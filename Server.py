@@ -40,7 +40,7 @@ class Server:
         #sending broadcast message every second until the game starts
         message = struct.pack('IbH', 0xabcddcba, 0x2 , port)
         while len(self.players) < 2:
-            self.udpServer.sendto(message, ('<broadcast>', 13117))
+            self.udpServer.sendto(message, (self.broadcast, 13117))
             time.sleep(1)
 
     def startTCP(self):
@@ -131,9 +131,14 @@ class Server:
         else:
             summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
         self.sendAllClients(summary.encode())
+        self.playersDictLock.acquire()
         self.players={}
+        self.playersDictLock.release()
         self.gameMode = False
         print("Game over, sending out offer requests...")
+        self.udpServer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        # Enable broadcasting mode
+        self.udpServer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.udpThread = threading.Thread(target=self.sendBroadcast, args=(self.ip,self.port))
         self.udpThread.start()
         self.udpThread.join()
