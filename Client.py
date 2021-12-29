@@ -53,7 +53,7 @@ class Client:
                     tcpClient.sendall((self.teamName + "\n").encode())
                     # recieving the Math Problem from the server 
                     problem, addr1 = tcpClient.recvfrom(1024)
-                    print(f'{CVIOLET}{CBOLD}problem.decode(){CEND}')
+                    print(CYELLOW + problem.decode() + CEND)
                     self.tcpConected = tcpClient
                     # define selector to listen to server TCP messages and key presses non blokingly 
                     self.currSelector = selectors.DefaultSelector()
@@ -83,7 +83,7 @@ class Client:
     # function to handdle server TCP messages events within the selector
     def printServerSummary(self, currSocket):
         summary, addr = currSocket.recvfrom(1024)
-        print(f'{CITALIC}{CBOLD}{CGREEN}summary.decode(){CEND}')
+        print(CRED + summary.decode() +CEND)
         self.tcpConected = None
         self.currSelector.unregister(sys.stdin)
         self.currSelector.unregister(currSocket)

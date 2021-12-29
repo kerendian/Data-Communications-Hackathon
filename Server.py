@@ -13,13 +13,14 @@ CBOLD     = '\33[1m'
 CITALIC   = '\33[3m'
 CEND      = '\33[0m'
 class Server:
+    
     def __init__(self, port, dev):
+        self.UDP_PORT = 13117
         self.port = port
-        
-        if(dev): # development mode 
+        if(dev):
             self.ip = get_if_addr('eth1') 
             self.broadcast = "172.1.255.255"
-        else: # testing mode
+        else:
             self.ip = get_if_addr('eth2') 
             self.broadcast = "172.99.255.255" 
   
@@ -34,7 +35,7 @@ class Server:
         self.udpServer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.tcpServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcpServer.bind((self.ip, self.port))
-        print("Server started, listening on IP address {}".format(self.ip)) 
+        print(CYELLOW + "Server started, listening on IP address {}".format(self.ip) + CEND) 
         #starting 2 threads- udp for broadcast and tcp for game
         self.udpThread = threading.Thread(target=self.sendBroadcast, args=(self.ip,self.port))
         self.tcpThread = threading.Thread(target=self.startTCP )
@@ -43,14 +44,12 @@ class Server:
         self.udpThread.join()
         self.tcpThread.join()
     
-    # sending broadcast messages over UDP socket
     def sendBroadcast(self,IP, port):
         print(f'{CBOLD}{CITALIC}{CBLUE}sending broadcast messages{CEND}')
         #sending broadcast message every second until the game starts
         message = struct.pack('IbH', 0xabcddcba, 0x2 , port)
-        # waiting to 2 clients to connect to the server
-        while len(self.players) < 2: 
-            self.udpServer.sendto(message, (self.broadcast,13117))
+        while len(self.players) < 2:
+            self.udpServer.sendto(message, (self.broadcast, self.UDP_PORT))
             time.sleep(1)
 
     def startTCP(self):
@@ -77,7 +76,7 @@ class Server:
                 time.sleep(10) #after both clients connected- neet to wait 10 seconds
                 message = "Welcome to Quick Maths.\nPlayer 1: {}\nPlayer 2: {}\n==\nPlease answer the following question as fast as you can\n How much is {}" \
                 .format(data.decode(),data2.decode(),problem)
-                print(f'{CBOLD}{CYELLOW}message{CEND}')
+                print(CBLUE + message + CEND)
                 self.sendAllClients(message.encode())
                 clientThread1.start()   
                 clientThread2.start()  
@@ -88,7 +87,6 @@ class Server:
         time.sleep(1)  
         self.startTCP()
 
-     # starting the game when 2 clients are connected to the tcp socket   
     def startGame(self,problem,ans, client,addr):
         
         try:
@@ -106,13 +104,13 @@ class Server:
                 self.gameLock.release()
                    
         except socket.timeout:
-            # the game ended in a tie, sending summery to clients
+            # tie -> send summery to clients
             self.gameOver(None,ans)
         except Exception as e:
             print(e)
         finally:
-            client.close() 
-    # generaing Math questions to send to the clients that conected to the game mode
+            client.close() #TODO: check if we need to close it
+              
     def randomQuestion(self):
         numbers = [1,2,3,4]
         number1 = random.choice(numbers) 
@@ -120,8 +118,7 @@ class Server:
         ans = number1 + number2
         return ("{} + {}?".format(number1, number2),ans) 
 
-    #find out which team returned the answer first 
-    def findSource(self,address):
+    def findSource(self,address): #find out which team returned the answer first
         for addr in self.players:
             if addr == address:
                 team1 = self.players[addr][0]
@@ -129,7 +126,7 @@ class Server:
                 team2 = self.players[addr][0]
         return team1,team2
 
-    # sending massages to both of the clients that connected to the tcp socket
+#########################################
     def sendAllClients(self, msg):
         for player in self.players:
             try:
@@ -137,13 +134,12 @@ class Server:
             except socket.error as e:
                 pass
     
-    # sendig game summety masseges to the clients
     def gameOver(self, winner, ans):
-        if winner is None: # the game ended in a tie 
+        if winner is None:
             summary = "Game over!\nThe correct answer was {}!\nThe game finished in a tie.".format(ans)
-        else: # one team answerd the correct answer 
+        else:
             summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
-        print(f'{CBOLD}{CGREEN}summary{CEND}')
+        print(CGREEN + summary + CEND)
         self.sendAllClients(summary.encode())
         self.playersDictLock.acquire()
         self.players={}
@@ -156,5 +152,6 @@ class Server:
         self.udpThread = threading.Thread(target=self.sendBroadcast, args=(self.ip,self.port))
         self.udpThread.start()
         self.udpThread.join()
+        #self.sendBroadcast(self.ip,self.port)
         return
 Server(2032, True)
