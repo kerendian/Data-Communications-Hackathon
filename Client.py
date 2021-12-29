@@ -28,21 +28,25 @@ class Client:
                     continue
             try:
                 message = struct.unpack('IbH' , data)
-                if(message[0]!= 0xabcddcba):
+                #if(message[0]!= 0xabcddcba): #TODO:remove comment
+                if(message[0] != 0xabcddcba or int(message[2]) != 2032):
                    continue
             except:
                 continue
            
             else:
                 print(("Received offer from {}, attempting to connect...".format(str(addr[0]))))
-                udpClient.close()
                 try:
                     # tcpClient.connect((addr[0], message[2]))
                     tcpClient.connect((socket.gethostname(), message[2]))
+                    
                     tcpClient.sendall((self.teamName + "\n").encode())
+                    
                     problem, addr1 = tcpClient.recvfrom(1024)
                     print(problem.decode())
+                    
                     self.tcpConected = tcpClient
+                    print("here")
                     self.currSelector = selectors.DefaultSelector()
                     self.currSelector.register(sys.stdin, selectors.EVENT_READ, self.got_keyboard_data)
                     self.currSelector.register(tcpConected, selectors.EVENT_READ, self.printServerSummary)
@@ -55,10 +59,12 @@ class Client:
                             callback(k.fileobj)
                     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
                     tcpClient.close()
-                except Exception:
+                except Exception as e:
+                    print(e)
+                    udpClient.close()
                     tcpClient.close()
                   
-                tcpConected = None
+                self.tcpConected = None
                 self.clearSocket(udpClient)
                 print("Server disconnected, listening for offer requests...")
     

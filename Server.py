@@ -1,4 +1,4 @@
-# from scapy.all import *
+from scapy.all import *
 import socket
 import time
 import struct
@@ -32,9 +32,10 @@ class Server:
 
         # Enable broadcasting mode
         self.udpServer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
         self.tcpServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcpServer.bind((self.ip, self.port))
+
+
 
         # Set a timeout so the socket does not block
         # indefinitely when trying to receive data.
@@ -47,6 +48,7 @@ class Server:
         self.tcpThread.start()
         self.udpThread.join()
         self.tcpThread.join()
+        
     def sendBroadcast(self,IP, port):
         message = struct.pack('IbH', 0xabcddcba, 0x2 , port)
         while len(self.players) < 2:
@@ -54,27 +56,34 @@ class Server:
             self.udpServer.sendto(message, ('<broadcast>', 13117))
             time.sleep(1)
             #maybe we need      
-        self.sendBroadcast(IP, port)
+        # self.sendBroadcast(IP, port)
 
     def startTCP(self):
         while not self.gameMode:
-            try:
-                
+            try:               
                 self.tcpServer.listen()
                 client, addr = self.tcpServer.accept()
-                data = self.tcpServer.recv(1027) #reciving name of client's team
+                print("Player 1 connected, waiting for player 2")
+                data = client.recv(1027) #reciving name of client's team
                 self.playersDictLock.acquire()
-                self.players[addr] = [data.decode(),1] 
+                self.players[addr] = [data.decode(),1,client] 
                 self.playersDictLock.release()
                 client2, addr2 = self.tcpServer.accept()
-                data2 = self.tcpServer.recv(1027) #reciving name of client's team
+                print("Player 2 connected, the game will start in a few seconds")
+                data2 = client2.recv(1027) #reciving name of client's team
                 self.playersDictLock.acquire()
-                self.players[addr2] = [data2.decode(),2] 
+                self.players[addr2] = [data2.decode(),2,client2] 
                 self.playersDictLock.release()
                 problem,ans = self.randomQuestion()
-                clientThread1 = threading.Thread(target=self.startGame,args=(problem, ans))
-                clientThread2 = threading.Thread(target=self.startGame,args=(problem, ans))
+                clientThread1 = threading.Thread(target=self.startGame,args=(problem, ans,client))
+                clientThread2 = threading.Thread(target=self.startGame,args=(problem, ans, client2))
                 self.gameMode = True
+                time.sleep(10) #after both clients connected- neet to wait 10 seconds
+                message = "Welcome to Quick Maths.\nPlayer 1: {}\nPlayer 2: {}\n==\nPlease answer the following question as fast as you can\n How much is {}" \
+                .format(data.decode(),data2.decode(),problem)
+                print(message)
+                client.sendall(message.encode())
+                client2.sendall(message.encode())
                 clientThread1.start()   
                 clientThread2.start()   
             except: 
@@ -82,19 +91,21 @@ class Server:
         time.sleep(1)  #TODO:check how much time to sleep without busy wait.
         self.startTCP()
 
-    def startGame(self,problem,ans):
-        time.sleep(10) #after both clients connected- neet to wait 10 seconds
-        names = []
-        for team in self.players:
-            names.append(self.players[team][0])
-        message = "Welcome to Quick Maths.\nPlayer 1: {}\nPlayer 2: {}\n==\nPlease answer the following question as fast as you can\n How much is {}" \
-        .format(names[0],names[1],problem)
+    def startGame(self,problem,ans, client):
+        #time.sleep(10) #after both clients connected- neet to wait 10 seconds
+        #names = []
+        #for team in self.players:
+            #names.append(self.players[team][0])
+        #message = "Welcome to Quick Maths.\nPlayer 1: {}\nPlayer 2: {}\n==\nPlease answer the following question as fast as you can\n How much is {}" \
+        #.format(names[0],names[1],problem)
         # do soctcpServer.settimeout(10) before -> then 
         try:
-            self.tcpServer.settimeout(10)
-            self.tcpServer.sendall(message.encode())
+            # TODO: 
+            client.settimeout(10)
+            #print(message)
+            #self.client.sendall(message.encode())
             # here we recieve the ans from one of the teams
-            sol, addr = self.tcpServer.recvfrom(1024)
+            sol, addr = client.recvfrom(1024)
             #     if(data):
             if(sol):
             #         mutex.aquier()
@@ -110,7 +121,7 @@ class Server:
                 
                 #  #      send game summery to the clients -> the clients socket is in the players Dict -> send from the dict
                 summary = "Game over!\nThe correct answer was {}!\n\nCongratulations to the winner: {}".format(ans,winner)
-                self.tcpServer.sendall(summary.encode())
+                client.sendall(summary.encode())
                 #     mutex.realease()
                 self.gameLock.release()
                     # close socket 
@@ -119,14 +130,14 @@ class Server:
         except socket.timeout: #TODO:need to make sure the timeoutexception from socekt.settimeout is this one
             # teko -> send summery to clients
             summary = "Game over!\nThe correct answer was {}!\n\nThe game ended in a tie".format(ans)
-            self.tcpServer.sendall(summary.encode())
+            client.sendall(summary.encode())
         finally:
             self.players={}
             self.gameMode = False
             #we can close here the sockets if needed.
 
             # close sockets 
-            self.tcpServer.close() # TODO: check if we need to close it
+            client.close() # TODO: check if we need to close it
             
     def randomQuestion(self):
         numbers = [1,2,3,4]
