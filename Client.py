@@ -9,13 +9,20 @@ import selectors
 import termios
 import tty
 import struct
-
+CRED    = '\33[31m'
+CGREEN  = '\33[32m'
+CYELLOW = '\33[33m'
+CBLUE   = '\33[34m'
+CVIOLET = '\33[35m'
+CBOLD     = '\33[1m'
+CITALIC   = '\33[3m'
+CEND      = '\33[0m'
 class Client:
     def __init__(self):
         self.tcpConected = None
         self.teamName = "Amen"   
         UDP_PORT = 13117
-        print("Client started, listening for offer requests...")
+        print(f'{CBOLD}{CRED}Client started, listening for offer requests...{CEND}')
         # UDP socket creation
         udpClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         udpClient.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -37,16 +44,16 @@ class Client:
            
             else:
 
-                print(("Received offer from {}, attempting to connect...".format(str(addr[0]))))
+                print(f'{CITALIC}{CYELLOW}Received offer from %s, attempting to connect...{CEND}' %str(addr[0]))
                 try:
                     # client connection to TCP socket
                     tcpClient.connect((addr[0], message[2]))
-                    print("connected to server")
+                    print(f'{CBLUE}connected to server{CEND}')
                     # sending the Team Name over the TCP socket
                     tcpClient.sendall((self.teamName + "\n").encode())
                     # recieving the Math Problem from the server 
                     problem, addr1 = tcpClient.recvfrom(1024)
-                    print(problem.decode())
+                    print(f'{CVIOLET}{CBOLD}problem.decode(){CEND}')
                     self.tcpConected = tcpClient
                     # define selector to listen to server TCP messages and key presses non blokingly 
                     self.currSelector = selectors.DefaultSelector()
@@ -66,7 +73,7 @@ class Client:
                   
                 else:  
                     self.tcpConected = None
-                    print("Server disconnected, listening for offer requests...")
+                    print(f'{CITALIC}{CRED}Server disconnected, listening for offer requests...{CEND}')
     # function to handdle keyboard press event within the selector
     def pressedKeyboard(self, stdin):
         if self.tcpConected is not None:
@@ -76,7 +83,7 @@ class Client:
     # function to handdle server TCP messages events within the selector
     def printServerSummary(self, currSocket):
         summary, addr = currSocket.recvfrom(1024)
-        print(summary.decode())
+        print(f'{CITALIC}{CBOLD}{CGREEN}summary.decode(){CEND}')
         self.tcpConected = None
         self.currSelector.unregister(sys.stdin)
         self.currSelector.unregister(currSocket)
