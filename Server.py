@@ -145,4 +145,4 @@ class Server:
         self.udpThread.join()
         #self.sendBroadcast(self.ip,self.port)
         return
-Server(2032, False)
+Server(2032, True)
