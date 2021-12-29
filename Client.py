@@ -53,15 +53,16 @@ class Client:
                             callback = k.data
                             callback(k.fileobj)
                     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-                    #tcpClient.close()
+                    tcpClient.close()
                 except Exception as e:
                     print(e)
                     udpClient.close()
                     tcpClient.close()
-                  
-                self.tcpConected = None
-                self.clearSocket(udpClient)
-                print("Server disconnected, listening for offer requests...")
+                else:  
+                    self.tcpConected = None
+
+                    #self.clearSocket(udpClient)
+                    print("Server disconnected, listening for offer requests...")
     
     def pressedKeyboard(self, stdin):
         if self.tcpConected is not None:
