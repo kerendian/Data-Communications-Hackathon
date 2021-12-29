@@ -14,23 +14,32 @@ class Client:
     def __init__(self, dev):
         self.tcpConected = None
         self.teamName = "Amen"   
+        UDP_PORT = 13117
         # Mode = 0 #0 for listening, 1 for playing
         print("Client started, listening for offer requests...")
         udpClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) # UDP
         udpClient.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         udpClient.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        udpClient.bind(("", 13117))
+        udpClient.bind(("", UDP_PORT))
         tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         while True:
             data, addr = udpClient.recvfrom(1024)
-            message = struct.unpack('IbH' , data)
-            if(message[0]!= 0xabcddcba):
+            if data is None:
                     continue
+            try:
+                message = struct.unpack('IbH' , data)
+                if(message[0]!= 0xabcddcba):
+                   continue
+            except:
+                continue
+           
             else:
-                print(("Received offer from {}, attempting to connect...".format(str(addr))))
+                print(("Received offer from {}, attempting to connect...".format(str(addr[0]))))
+                udpClient.close()
                 try:
-                    tcpClient.connect((addr[0], message[2]))
-                    tcpClient.send((self.teamName + "\n").encode())
+                    # tcpClient.connect((addr[0], message[2]))
+                    tcpClient.connect((socket.gethostname(), message[2]))
+                    tcpClient.sendall((self.teamName + "\n").encode())
                     problem, addr1 = tcpClient.recvfrom(1024)
                     print(problem.decode())
                     self.tcpConected = tcpClient
@@ -48,8 +57,7 @@ class Client:
                     tcpClient.close()
                 except Exception:
                     tcpClient.close()
-                    udpClient.close()
-                    exit(0)
+                  
                 tcpConected = None
                 self.clearSocket(udpClient)
                 print("Server disconnected, listening for offer requests...")
